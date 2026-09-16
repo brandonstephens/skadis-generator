@@ -6,6 +6,14 @@ Generates SKÅDIS-compatible pegboard SVGs for Shaper Origin / Shaper Studio, wi
 
 Open `index.html` in a browser. No build step or dependencies (Google Fonts load from the web; system fallbacks otherwise).
 
+Or serve it locally:
+
+```sh
+python3 -m http.server 8000
+```
+
+Then open http://localhost:8000/.
+
 ## Files
 
 - `index.html` markup and controls
