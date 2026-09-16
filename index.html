@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SKÅDIS board generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <aside>
+    <h1>SKÅDIS board generator</h1>
+    <p class="sub">Cut-ready SVG for Shaper Origin and Shaper Studio.</p>
+    <div class="units" role="group" aria-label="Units">
+      <button type="button" data-unit="mm" aria-pressed="true">Metric (mm)</button>
+      <button type="button" data-unit="in" aria-pressed="false">Imperial (in)</button>
+    </div>
+
+    <fieldset>
+      <legend>Panel</legend>
+      <div class="presets" role="group" aria-label="Size presets">
+        <button type="button" data-w="360" data-h="560">IKEA narrow</button>
+        <button type="button" data-w="560" data-h="560">IKEA square</button>
+        <button type="button" data-w="760" data-h="560">IKEA wide</button>
+        <button type="button" data-w="609.6" data-h="1219.2">2 × 4 ft</button>
+      </div>
+      <div class="row">
+        <label class="f"><span data-label="Width">Width</span><input id="w" type="number" min="20" step="1" value="560"></label>
+        <label class="f"><span data-label="Height">Height</span><input id="h" type="number" min="20" step="1" value="560"></label>
+      </div>
+      <div class="row">
+        <label class="f"><span data-label="Min. edge margin">Min. edge margin</span><input id="m" type="number" min="0" step="1" value="15"></label>
+        <label class="f"><span data-label="Corner radius">Corner radius</span><input id="r" type="number" min="0" step="1" value="0"></label>
+      </div>
+      <label class="check"><input id="outline" type="checkbox" checked> Cut panel outline</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Slots</legend>
+      <div class="row three">
+        <label class="f"><span data-label="Width">Width</span><input id="sw" type="number" min="1" step="0.1" value="5"></label>
+        <label class="f"><span data-label="Length">Length</span><input id="sl" type="number" min="1" step="0.1" value="15"></label>
+        <label class="f"><span data-label="Pitch">Pitch</span><input id="p" type="number" min="5" step="1" value="40"></label>
+      </div>
+      <label class="check"><input id="stagger" type="checkbox" checked> Staggered rows (offset half pitch)</label>
+      <label class="check"><input id="flip" type="checkbox"> Swap stagger phase</label>
+      <label class="check"><input id="horiz" type="checkbox"> Horizontal slots</label>
+      <button type="button" class="ghost" id="reset">Reset to IKEA dimensions</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>Mounting holes</legend>
+      <label class="check"><input id="holes" type="checkbox"> Add corner holes</label>
+      <div class="row">
+        <label class="f"><span data-label="Diameter">Diameter</span><input id="hd" type="number" min="1" step="0.5" value="5"></label>
+        <label class="f"><span data-label="Inset">Inset</span><input id="hi" type="number" min="1" step="1" value="10"></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Material and depth</legend>
+      <label class="f"><span>Material</span>
+        <select id="mat">
+          <option value="mdf">MDF</option>
+          <option value="hdf">Hardboard (HDF)</option>
+          <option value="birch">Baltic birch plywood</option>
+        </select>
+      </label>
+      <div class="thick" role="group" aria-label="Standard thicknesses">
+        <button type="button" data-t="3">3 mm</button>
+        <button type="button" data-t="3.175">1/8 in</button>
+        <button type="button" data-t="5">5 mm</button>
+        <button type="button" data-t="6">6 mm</button>
+        <button type="button" data-t="6.35">1/4 in</button>
+        <button type="button" data-t="9">9 mm</button>
+        <button type="button" data-t="12">12 mm</button>
+        <button type="button" data-t="12.7">1/2 in</button>
+      </div>
+      <div class="row">
+        <label class="f"><span data-label="Thickness">Thickness</span><input id="t" type="number" min="1" step="0.05" value="5"></label>
+        <label class="f"><span data-label="Overcut">Overcut</span><input id="oc" type="number" min="0" step="0.1" value="0.5"></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Export</legend>
+      <label class="f"><span>Custom anchor</span>
+        <select id="anchor">
+          <option value="bl">Panel bottom-left corner</option>
+          <option value="c">Panel center</option>
+          <option value="slot">Bottom-left slot center</option>
+          <option value="none">None</option>
+        </select>
+      </label>
+      <label class="check"><input id="guides" type="checkbox"> Include blue guide grid</label>
+    </fieldset>
+
+    <div class="note">
+      <p>The SVG always exports in millimeters, so imperial entries don't pick up rounding. Every cut path carries <code>shaper:cutDepth</code> set to thickness plus overcut. Slots and holes are inside cuts (black stroke, white fill); the outline is an outside cut (black fill). The anchor is a red, strokeless right triangle whose right-angle corner is the anchor point, short leg on X, long leg on Y.</p>
+    </div>
+  </aside>
+
+  <main>
+    <div class="stage"><svg id="preview" role="img" aria-label="Board preview"></svg></div>
+    <div class="bar">
+      <div class="stats">
+        <div class="stat"><b id="sCount">0</b><small>slots</small></div>
+        <div class="stat"><b id="sSize">0</b><small>panel</small></div>
+        <div class="stat"><b id="sMargin">0</b><small>actual margins (L/R, T/B)</small></div>
+      </div>
+      <div class="actions">
+        <button type="button" class="ghost" id="copy">Copy SVG</button>
+        <button type="button" class="primary" id="download">Download SVG</button>
+      </div>
+    </div>
+    <div class="msg" id="msg" aria-live="polite"></div>
+    <section class="plan" aria-labelledby="planTitle">
+      <h2 id="planTitle">Cut plan</h2>
+      <p class="fit" id="fit"></p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Cut</th><th>Bit</th><th>Spindle</th><th>Feed</th><th>Depth per pass</th><th>Passes</th></tr></thead>
+          <tbody id="planRows"></tbody>
+        </table>
+      </div>
+      <ol id="planSteps"></ol>
+      <p class="src">Spindle 5, 10 in/min and 1/4 in per pass come from Shaper's materials table for 1/4 in upcut bits in plywood and MDF. The 1/8 in figures are scaled from that (one bit diameter per pass, slightly slower feed). Treat all of them as starting points: back the dial off if you smell burning, raise it if the cut feels grabby.</p>
+    </section>
+    <details>
+      <summary>SVG source</summary>
+      <textarea id="code" readonly spellcheck="false" aria-label="SVG source"></textarea>
+    </details>
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
