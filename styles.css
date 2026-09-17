@@ -93,6 +93,8 @@ legend {
 .row.three { grid-template-columns: 1fr 1fr 1fr; }
 label.f { display: block; margin-bottom: 10px; }
 label.f span { display: block; font-size: 13px; color: var(--muted); margin-bottom: 3px; }
+label.f span.scrub { width: fit-content; cursor: ew-resize; user-select: none; touch-action: none; }
+body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: none; }
 input[type=number], select {
   width: 100%;
   font: inherit;

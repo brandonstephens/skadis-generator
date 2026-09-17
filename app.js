@@ -279,6 +279,58 @@
     state[id] = unit === "in" ? v * IN_MM : v;
     update();
   }));
+  // Nudge a field by `steps` of its step size, clamped to min and snapped to
+  // the step's precision so floats don't drift (0.30000000000000004).
+  function nudge(el, steps) {
+    const step = parseFloat(el.step) || 1;
+    const min = parseFloat(el.min);
+    const decimals = (el.step.split(".")[1] || "").length;
+    let v = (parseFloat(el.value) || 0) + steps * step;
+    if (isFinite(min)) v = Math.max(min, v);
+    el.value = +v.toFixed(decimals);
+    el.dispatchEvent(new Event("input"));
+  }
+  // Arrow keys step by 1, Shift+Arrow by 10.
+  ids.forEach((id) => $(id).addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+    e.preventDefault();
+    nudge($(id), (e.key === "ArrowUp" ? 1 : -1) * (e.shiftKey ? 10 : 1));
+  }));
+  // Drag a field's label left/right to scrub its value (Shift for 10×).
+  const SCRUB_PX = 4;
+  ids.forEach((id) => {
+    const el = $(id);
+    const label = el.previousElementSibling;
+    if (!label) return;
+    label.classList.add("scrub");
+    let startX = null, moved = 0, dragged = false;
+    label.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      startX = e.clientX; moved = 0; dragged = false;
+      label.setPointerCapture(e.pointerId);
+    });
+    label.addEventListener("pointermove", (e) => {
+      if (startX === null) return;
+      const ticks = Math.trunc((e.clientX - startX) / SCRUB_PX);
+      if (ticks === moved) return;
+      if (!dragged) { dragged = true; document.body.classList.add("scrubbing"); }
+      nudge(el, (ticks - moved) * (e.shiftKey ? 10 : 1));
+      moved = ticks;
+    });
+    const end = () => {
+      if (startX === null) return;
+      startX = null;
+      document.body.classList.remove("scrubbing");
+      if (!dragged) el.focus();
+    };
+    label.addEventListener("pointerup", end);
+    label.addEventListener("pointercancel", end);
+    // A drag shouldn't also count as a label click that focuses the input.
+    label.parentElement.addEventListener("click", (e) => {
+      if (dragged && e.target === label) { e.preventDefault(); dragged = false; }
+    });
+  });
   document.querySelectorAll(".units button").forEach((b) => {
     b.addEventListener("click", () => {
       unit = b.dataset.unit;
